@@ -1,25 +1,71 @@
 import sys
 
+# import libraries
+import numpy as np
+import pandas as pd
+from sqlalchemy import create_engine 
+
+import pickle
+
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import confusion_matrix, classification_report
+
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer 
+from sklearn.multioutput import MultiOutputClassifier
+
+import nltk
+import re
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
 
 def load_data(database_filepath):
-    pass
+    # load data from database
+    engine = create_engine('sqlite:///'+database_filepath)
+    df = pd.read_sql_table('DisasterResponse', engine) #table name same as db name
+    X = df['message']
+    Y = df.iloc[:, 4:]
 
+    category_names = Y.columns
+    Y = Y.values#convert df back to numpy array for convenience used of sklearn prediction, calssification report
+    
+    return  X, Y, category_names 
 
 def tokenize(text):
-    pass
+    #normalize  
+    text = text.lower()   
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text)  # remove puntuation 
+    #tokenize text
+    words = word_tokenize(text)
+    #lemmatize
+    lemmed = [WordNetLemmatizer().lemmatize(w) for w in text]
+    return lemmed
 
 
 def build_model():
-    pass
-
-
-def evaluate_model(model, X_test, Y_test, category_names):
-    pass
-
+    pipeline = Pipeline([
+    ('vect', CountVectorizer(tokenizer=tokenize)),
+    ('tfidf', TfidfTransformer()),
+    ('clf', MultiOutputClassifier(RandomForestClassifier(n_jobs=-1))), #TODO: test n_jobs=-1 efficiency
+])
+ 
+    return pipeline
+ 
+def evaluate_model(model, X_test, Y_test, category_names): 
+    Y_pred = model.predict(X_test)
+  
+    for i in range(Y_test.shape[1]):
+        print(category_names[i])
+        print(classification_report(Y_test[:,i], Y_pred[:,i]))
+        print()
 
 def save_model(model, model_filepath):
-    pass
-
+    #export pickle
+    with open(model_filepath, 'wb') as f:
+        pickle.dump(model, f)
 
 def main():
     if len(sys.argv) == 3:
@@ -50,4 +96,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main()giot 
