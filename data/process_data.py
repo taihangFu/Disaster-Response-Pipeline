@@ -1,16 +1,51 @@
 import sys
 
+# import libraries
+import pandas as pd
+from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
-    pass
-
-
-def clean_data(df):
-    pass
-
-
+    # load  dataset
+    messages = pd.read_csv(messages_filepath)
+    categories = pd.read_csv(categories_filepath)
+    
+    # Remove duplicates rows who have he same id=df
+    messages=messages.drop_duplicates('id')
+    categories=categories.drop_duplicates('id')
+    
+    # Merge datasets
+    df = messages.merge(categories, how='outer',\
+                                   on='id')
+    
+    return df
+    
+def clean_data(df): 
+    # Create a dataframe of the 36 individual category columns
+    categories = df['categories'].str.split(';',expand=True)
+    
+    #  Split categories into separate category columns
+    row = categories.iloc[0]
+    category_colnames = row.values # extract a list of new column names for categories
+    categories.columns = category_colnames # rename the columns of `categories`
+    
+    # Convert category values to just numbers 0 or 1
+    for column in categories:
+        categories[column] = categories[column].str.get(-1)  # set each value to be the last character of the string
+        categories[column] =  categories[column].astype('int32')  # convert column from string to numeric
+    
+    ## Clean Data
+    categories = categories.rename(columns={"1":"related-1"}) # work around: rename first columns label since it is modified with unknown reason
+    categories['related-1'] = categories['related-1'].replace(2, categories['related-1'].mode()[0]) # replace label 2 to Mode as we need all columns binary class but 'related-1' has 3 classes
+    
+    # Replace categories column in df with new category columns
+    df = df.drop('categories', axis=1)
+    df = pd.concat([df.reset_index(drop=True), categories.reset_index(drop=True)], axis=1)
+    
+    return df
+    
 def save_data(df, database_filename):
-    pass  
+    engine = create_engine('sqlite:///'+database_filename)
+    df.to_sql('DisasterResponse', engine, if_exists='replace', index=False)  
 
 
 def main():
