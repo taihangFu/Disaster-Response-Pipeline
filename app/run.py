@@ -67,14 +67,7 @@ def index():
         }
     ]
     
-    #TODO: visualise wordcloud?? for column MESSAGE
-    message=None    # TODO: extract messages
-    mwc = MessageWordCloud(messages)
-    mwc.preprocess(punctuations=False, decapitalisation=True, stopwords=False)
-    mwc.create_word_cloud_img()
-        #TODO: pass img to index.html
-        
-    #TODO: show example of message of each genre
+    
     
     # encode plotly graphs in JSON
     ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]
