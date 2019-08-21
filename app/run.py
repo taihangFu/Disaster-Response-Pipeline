@@ -27,7 +27,7 @@ def tokenize(text):
 # load data
 engine = create_engine('sqlite:///../data/DisasterResponse.db')
 df = pd.read_sql_table('DisasterResponse', engine)
-
+print(df.head())
 # load model
 model = joblib.load("../models/classifier.pkl")
 
@@ -42,9 +42,23 @@ def index():
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
     
+    # extract data needed for visuals
+    # distributions of message category
+    msg_cat_p = df[df.columns[4:]].sum()/len(df)              # proportion based on\
+                                                          # categories
+    msg_cat_p = msg_cat_p.sort_values(ascending = False)          # largest bar will be\
+                                                          # on left
+    msg_cats = list(msg_cat_p.index)                              # category names
+    
+     # extract data needed for visuals
+     # top 10 frequent words 
+
+    
+    
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
+        #barchart of genre of messages
         {
             'data': [
                 Bar(
@@ -62,7 +76,35 @@ def index():
                     'title': "Genre"
                 }
             }
+        },
+        #TODO: bar chart of classification labels
+        {
+            'data': [
+                Bar(
+                    x=msg_cats,
+                    y=msg_cat_p
+                )
+            ],
+
+            'layout': {
+                'title': 'Distribution of Messages Category',
+                'yaxis': {
+                    'title': "Proportion",
+                    'automargin':True
+                },
+                'xaxis': {
+                    'title': "Category",
+                    'tickangle': -40,
+                    'automargin':True
+                }
+            }
+        
+        },
+        #TODO: bar chart of top-10 messages
+        {
+          
         }
+        
     ]
     
     
