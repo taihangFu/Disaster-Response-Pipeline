@@ -47,10 +47,15 @@ The Project is divided in the following Sections:
 
 <a name="examples"></a>
 ## Examples
+
 Enter text message on input field
+
 ![](media/disaster-response-project1.png)
 
+
+
 then the app will classify the input text meaasge and display the classification result.
+
 ![](media/disaster-response-project2-2.png)
 
 
