@@ -5,7 +5,7 @@
 2. [Getting Started](#getting_started)
 	1. [Dependencies](#dependencies)
 	2. [Instructions](#instructions)
-3. [Screenshots](#screenshots)
+3. [Examples](#examples)
 
 <a name="descripton"></a>
 ## Description
@@ -45,8 +45,13 @@ The Project is divided in the following Sections:
 
 3. Go to http://0.0.0.0:3001/
 
-<a name="screenshots"></a>
-## Screenshots
+<a name="examples"></a>
+## Examples
+Enter text message on input field
+![](media/disaster-response-project1.png)
+
+then the app will classify the input text meaasge and display the classification result.
+![](media/disaster-response-project2-2.png)
 
 
 
