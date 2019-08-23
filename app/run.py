@@ -11,6 +11,7 @@ from plotly.graph_objs import Bar
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 
+import operator
 from text_preprocessing import preprocess
 
 app = Flask(__name__)
@@ -45,11 +46,10 @@ def index():
     
     # extract data needed for visuals
     # distributions of message category
-    msg_cat_p = df[df.columns[4:]].sum()/len(df)              # proportion based on\
-                                                          # categories
-    msg_cat_p = msg_cat_p.sort_values(ascending = False)          # largest bar will be\
-                                                          # on left
-    msg_cats = list(msg_cat_p.index)                              # category names
+    msg_cat_p = df[df.columns[4:]].sum()/len(df)  # proportion based by # categories
+    msg_cat_p = msg_cat_p.sort_values(ascending = False)  
+                                                          
+    msg_cats = list(msg_cat_p.index)  # category names                            
     
      # extract data needed for visuals
      # top 10 frequent words 
@@ -61,7 +61,15 @@ def index():
     '''
     contents = df['message'].values
     contents = ' '.join(contents.flatten().tolist())
-    word_frequency=preprocess(contents=contents, stopwords=True)
+    word_frequency=preprocess(contents=contents, punctuations=True, stopwords=True, lemmatization=True)
+   
+    sorted_word_frequency = sorted(word_frequency.items(),  #list of tuples sorted by dictionary value(freq count of each word)
+                                         key=operator.itemgetter(1),# sorted by value
+                                         reverse=True) 
+    msg_words, msg_words_count = map(list, zip(*sorted_word_frequency)) #list of tuples -> list(s)     
+    msg_words = msg_words[:10]#takes top-10 only
+    msg_words_count = msg_words_count[:10] #percentage
+        
     #print(word_frequency)
     
     # create visuals
@@ -111,7 +119,24 @@ def index():
         },
         #TODO: bar chart of top-10 messages
         {
-                
+            'data': [
+                 Bar(
+                            x=msg_words,
+                            y=msg_words_count
+                        )
+            ],
+
+            'layout': {
+                'title': 'Top 10 frequent words',
+                'yaxis': {
+                    'title': 'Occurrence',
+                    'automargin': True
+                },
+                'xaxis': {
+                    'title': 'Top 10 words',
+                    'automargin': True
+                }
+            }       
         }
         
     ]
