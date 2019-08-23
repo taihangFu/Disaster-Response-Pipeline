@@ -11,6 +11,8 @@ from plotly.graph_objs import Bar
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 
+from text_preprocessing import preprocess
+
 app = Flask(__name__)
 
 def tokenize(text):
@@ -27,7 +29,6 @@ def tokenize(text):
 # load data
 engine = create_engine('sqlite:///../data/DisasterResponse.db')
 df = pd.read_sql_table('DisasterResponse', engine)
-print(df.head())
 # load model
 model = joblib.load("../models/classifier.pkl")
 
@@ -52,8 +53,16 @@ def index():
     
      # extract data needed for visuals
      # top 10 frequent words 
-
     
+    '''
+    1. CONCAT ALL MESSAGES ON DF TOGETHER AS A STRING
+    2. CALL PRERPOCESS
+    3. get the return frequency dict and plot
+    '''
+    contents = df['message'].values
+    contents = ' '.join(contents.flatten().tolist())
+    word_frequency=preprocess(contents=contents, stopwords=True)
+    #print(word_frequency)
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
@@ -102,7 +111,7 @@ def index():
         },
         #TODO: bar chart of top-10 messages
         {
-          
+                
         }
         
     ]
