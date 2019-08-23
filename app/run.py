@@ -46,10 +46,10 @@ def index():
     
     # extract data needed for visuals
     # distributions of message category
-    msg_cat_p = df[df.columns[4:]].sum()/len(df)  # proportion based by # categories
-    msg_cat_p = msg_cat_p.sort_values(ascending = False)  
+    msg_cats_count = df[df.columns[4:]].sum() #count
+    msg_cats_count = msg_cats_count.sort_values(ascending = False)  
                                                           
-    msg_cats = list(msg_cat_p.index)  # category names                            
+    msg_cats = list(msg_cats_count.index)  # category names                            
     
      # extract data needed for visuals
      # top 10 frequent words 
@@ -99,14 +99,14 @@ def index():
             'data': [
                 Bar(
                     x=msg_cats,
-                    y=msg_cat_p
+                    y=msg_cats_count
                 )
             ],
 
             'layout': {
                 'title': 'Distribution of Messages Category',
                 'yaxis': {
-                    'title': "Proportion",
+                    'title': "Count",
                     'automargin':True
                 },
                 'xaxis': {
