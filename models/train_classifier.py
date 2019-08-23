@@ -22,6 +22,8 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 
+nltk.download('stopwords')
+
 def load_data(database_filepath):
     # load data from database
     engine = create_engine('sqlite:///'+database_filepath)
@@ -35,13 +37,22 @@ def load_data(database_filepath):
     return  X, Y, category_names 
 
 def tokenize(text):
-    #normalize  
-    text = text.lower()   
-    text = re.sub(r"[^a-zA-Z0-9]", " ", text)  # remove puntuation 
+    #normalize
+    ##lower case
+    text = text.lower() 
+    ##remove puntuation
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text) 
+    
     #tokenize text
     words = word_tokenize(text)
+    
+    #remove stopwords
+    cachestopwords = set(stopwords.words("english")) #to speed up
+    words = [w for w in words if w not in cachestopwords]
+    
     #lemmatize
-    lemmed = [WordNetLemmatizer().lemmatize(w) for w in text]
+    lemmed = list(set([WordNetLemmatizer().lemmatize(w) for w in words]))
+    
     return lemmed
 
 
@@ -51,8 +62,14 @@ def build_model():
     ('tfidf', TfidfTransformer()),
     ('clf', MultiOutputClassifier(RandomForestClassifier(n_jobs=-1))), #TODO: test n_jobs=-1 efficiency
 ])
- 
-    return pipeline
+    
+    parameters = {
+    'clf__estimator__n_estimators': [50, 100]
+}
+    
+    cv = GridSearchCV(pipeline, param_grid=parameters)
+    
+    return cv
  
 def evaluate_model(model, X_test, Y_test, category_names): 
     Y_pred = model.predict(X_test)
