@@ -4,10 +4,11 @@ nltk.download('wordnet')
 nltk.download('stopwords')
 from nltk import word_tokenize
 from nltk.corpus import stopwords as sw
+from nltk.stem import WordNetLemmatizer
 
-
+#TODO: stem
 # preprocessing the contents of wiki page of the _word, pre
-def preprocess(contents='', punctuations=False, decapitalisation=False, stopwords=False):
+def preprocess(contents='', punctuations=False, stopwords=False, lemmatization=False):
     '''
     
     '''
@@ -29,7 +30,13 @@ def preprocess(contents='', punctuations=False, decapitalisation=False, stopword
     if stopwords:
         tokens = [w for w in tokens if w not in cachedStopWords]
     
+    #lemmatizer
+    if lemmatization:
+        lemmatizer = WordNetLemmatizer()
+        tokens =  [lemmatizer.lemmatize(tok).strip() for tok in tokens]
+        
     # word frequency
+    #TODO: refactor code see if theres build in function
     word_dict = {}
     for token in tokens:
         if token in word_dict:
