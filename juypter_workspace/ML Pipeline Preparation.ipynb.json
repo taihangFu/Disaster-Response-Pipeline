@@ -1,0 +1,1368 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# ML Pipeline Preparation\n",
+    "Follow the instructions below to help you create your ML pipeline.\n",
+    "### 1. Import libraries and load data from database.\n",
+    "- Import Python libraries\n",
+    "- Load dataset from database with [`read_sql_table`](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_sql_table.html)\n",
+    "- Define feature and target variables X and Y"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#TODO: push to github\n",
+    "# import libraries\n",
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "from sqlalchemy import create_engine \n",
+    "\n",
+    "import pickle\n",
+    "\n",
+    "from sklearn.pipeline import Pipeline\n",
+    "from sklearn.metrics import confusion_matrix, classification_report\n",
+    "\n",
+    "from sklearn.model_selection import train_test_split, GridSearchCV\n",
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer \n",
+    "from sklearn.multioutput import MultiOutputClassifier"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[nltk_data] Downloading package punkt to /root/nltk_data...\n",
+      "[nltk_data]   Unzipping tokenizers/punkt.zip.\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "True"
+      ]
+     },
+     "execution_count": 3,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "import nltk\n",
+    "nltk.download('punkt')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[nltk_data] Downloading package stopwords to /root/nltk_data...\n",
+      "[nltk_data]   Unzipping corpora/stopwords.zip.\n",
+      "[nltk_data] Downloading package wordnet to /root/nltk_data...\n",
+      "[nltk_data]   Unzipping corpora/wordnet.zip.\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "True"
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "nltk.download('stopwords')\n",
+    "nltk.download('wordnet') # download for lemmatization"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import re\n",
+    "from nltk.tokenize import word_tokenize\n",
+    "from nltk.stem import WordNetLemmatizer\n",
+    "from nltk.corpus import stopwords\n",
+    "from nltk.stem.porter import PorterStemmer\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# load data from database\n",
+    "engine = create_engine('sqlite:///DisasterResponse.db')\n",
+    "df = pd.read_sql_table('DisasterResponse', engine) #table name same as db name\n",
+    "X = df['message']#TODO: message column\n",
+    "Y = df.iloc[:, 4:]#TODO: 36 categories"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0    Weather update - a cold front from Cuba that c...\n",
+       "1              Is the Hurricane over or is it not over\n",
+       "2                      Looking for someone but no name\n",
+       "3    UN reports Leogane 80-90 destroyed. Only Hospi...\n",
+       "4    says: west side of Haiti, rest of the country ...\n",
+       "Name: message, dtype: object"
+      ]
+     },
+     "execution_count": 7,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "X.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "related-1                   2\n",
+       "request-0                   2\n",
+       "offer-0                     2\n",
+       "aid_related-0               2\n",
+       "medical_help-0              2\n",
+       "medical_products-0          2\n",
+       "search_and_rescue-0         2\n",
+       "security-0                  2\n",
+       "military-0                  2\n",
+       "child_alone-0               1\n",
+       "water-0                     2\n",
+       "food-0                      2\n",
+       "shelter-0                   2\n",
+       "clothing-0                  2\n",
+       "money-0                     2\n",
+       "missing_people-0            2\n",
+       "refugees-0                  2\n",
+       "death-0                     2\n",
+       "other_aid-0                 2\n",
+       "infrastructure_related-0    2\n",
+       "transport-0                 2\n",
+       "buildings-0                 2\n",
+       "electricity-0               2\n",
+       "tools-0                     2\n",
+       "hospitals-0                 2\n",
+       "shops-0                     2\n",
+       "aid_centers-0               2\n",
+       "other_infrastructure-0      2\n",
+       "weather_related-0           2\n",
+       "floods-0                    2\n",
+       "storm-0                     2\n",
+       "fire-0                      2\n",
+       "earthquake-0                2\n",
+       "cold-0                      2\n",
+       "other_weather-0             2\n",
+       "direct_report-0             2\n",
+       "dtype: int64"
+      ]
+     },
+     "execution_count": 8,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "categories_labels = Y.columns\n",
+    "Y.nunique()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([1, 0])"
+      ]
+     },
+     "execution_count": 9,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "Y['related-1'].unique()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "<class 'pandas.core.frame.DataFrame'>\n",
+      "RangeIndex: 26180 entries, 0 to 26179\n",
+      "Data columns (total 36 columns):\n",
+      "related-1                   26180 non-null int64\n",
+      "request-0                   26180 non-null int64\n",
+      "offer-0                     26180 non-null int64\n",
+      "aid_related-0               26180 non-null int64\n",
+      "medical_help-0              26180 non-null int64\n",
+      "medical_products-0          26180 non-null int64\n",
+      "search_and_rescue-0         26180 non-null int64\n",
+      "security-0                  26180 non-null int64\n",
+      "military-0                  26180 non-null int64\n",
+      "child_alone-0               26180 non-null int64\n",
+      "water-0                     26180 non-null int64\n",
+      "food-0                      26180 non-null int64\n",
+      "shelter-0                   26180 non-null int64\n",
+      "clothing-0                  26180 non-null int64\n",
+      "money-0                     26180 non-null int64\n",
+      "missing_people-0            26180 non-null int64\n",
+      "refugees-0                  26180 non-null int64\n",
+      "death-0                     26180 non-null int64\n",
+      "other_aid-0                 26180 non-null int64\n",
+      "infrastructure_related-0    26180 non-null int64\n",
+      "transport-0                 26180 non-null int64\n",
+      "buildings-0                 26180 non-null int64\n",
+      "electricity-0               26180 non-null int64\n",
+      "tools-0                     26180 non-null int64\n",
+      "hospitals-0                 26180 non-null int64\n",
+      "shops-0                     26180 non-null int64\n",
+      "aid_centers-0               26180 non-null int64\n",
+      "other_infrastructure-0      26180 non-null int64\n",
+      "weather_related-0           26180 non-null int64\n",
+      "floods-0                    26180 non-null int64\n",
+      "storm-0                     26180 non-null int64\n",
+      "fire-0                      26180 non-null int64\n",
+      "earthquake-0                26180 non-null int64\n",
+      "cold-0                      26180 non-null int64\n",
+      "other_weather-0             26180 non-null int64\n",
+      "direct_report-0             26180 non-null int64\n",
+      "dtypes: int64(36)\n",
+      "memory usage: 7.2 MB\n"
+     ]
+    }
+   ],
+   "source": [
+    "Y.info()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#convert df back to numpy array for convenience used of sklearn prediction, calssification report\n",
+    "Y = Y.values"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([[1, 0, 0, ..., 0, 0, 0],\n",
+       "       [1, 0, 0, ..., 0, 0, 0],\n",
+       "       [1, 0, 0, ..., 0, 0, 0],\n",
+       "       ..., \n",
+       "       [1, 0, 0, ..., 0, 0, 0],\n",
+       "       [1, 0, 0, ..., 0, 0, 0],\n",
+       "       [1, 0, 0, ..., 0, 0, 0]])"
+      ]
+     },
+     "execution_count": 12,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "Y"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 2. Write a tokenization function to process your text data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def tokenize(text):    \n",
+    "    #normalize\n",
+    "    ##lower case\n",
+    "    text = text.lower() \n",
+    "    ##remove puntuation\n",
+    "    text = re.sub(r\"[^a-zA-Z0-9]\", \" \", text) \n",
+    "    \n",
+    "    #tokenize text\n",
+    "    words = word_tokenize(text)\n",
+    "    \n",
+    "    #remove stopwords\n",
+    "    cachestopwords = set(stopwords.words(\"english\")) #to speed up\n",
+    "    words = [w for w in words if w not in cachestopwords]\n",
+    "    \n",
+    "    #lemmatize\n",
+    "    lemmed = list(set([WordNetLemmatizer().lemmatize(w) for w in words]))\n",
+    "        \n",
+    "    \n",
+    "    return lemmed\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 3. Build a machine learning pipeline\n",
+    "This machine pipeline should take in the `message` column as input and output classification results on the other 36 categories in the dataset. You may find the [MultiOutputClassifier](http://scikit-learn.org/stable/modules/generated/sklearn.multioutput.MultiOutputClassifier.html) helpful for predicting multiple target variables."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#TODO: speed up\n",
+    "pipeline = Pipeline([\n",
+    "    ('vect', CountVectorizer(tokenizer=tokenize)),\n",
+    "    ('tfidf', TfidfTransformer()), #TF-IDF\n",
+    "    ('clf', MultiOutputClassifier(RandomForestClassifier(n_jobs=-1))), \n",
+    "])\n",
+    " "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 4. Train pipeline\n",
+    "- Split data into train and test sets\n",
+    "- Train pipeline"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_train, X_test, y_train, y_test = train_test_split(X, Y)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Pipeline(memory=None,\n",
+       "     steps=[('vect', CountVectorizer(analyzer='word', binary=False, decode_error='strict',\n",
+       "        dtype=<class 'numpy.int64'>, encoding='utf-8', input='content',\n",
+       "        lowercase=True, max_df=1.0, max_features=None, min_df=1,\n",
+       "        ngram_range=(1, 1), preprocessor=None, stop_words=None,\n",
+       "        strip...oob_score=False, random_state=None, verbose=0,\n",
+       "            warm_start=False),\n",
+       "           n_jobs=1))])"
+      ]
+     },
+     "execution_count": 16,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "pipeline.fit(X_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 5. Test your model\n",
+    "Report the f1 score, precision and recall for each output category of the dataset. You can do this by iterating through the columns and calling sklearn's `classification_report` on each."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[[1 0 0 ..., 0 0 0]\n",
+      " [1 0 0 ..., 0 0 0]\n",
+      " [1 0 0 ..., 0 0 0]\n",
+      " ..., \n",
+      " [0 0 0 ..., 0 0 0]\n",
+      " [1 0 0 ..., 0 0 0]\n",
+      " [1 0 0 ..., 0 0 0]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "y_pred = pipeline.predict(X_test)\n",
+    "print(y_pred)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "numpy.ndarray"
+      ]
+     },
+     "execution_count": 18,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "type(y_test)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "related-1\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.64      0.45      0.53      1526\n",
+      "          1       0.85      0.92      0.88      5019\n",
+      "\n",
+      "avg / total       0.80      0.81      0.80      6545\n",
+      "\n",
+      "\n",
+      "request-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.89      0.98      0.93      5401\n",
+      "          1       0.82      0.45      0.58      1144\n",
+      "\n",
+      "avg / total       0.88      0.89      0.87      6545\n",
+      "\n",
+      "\n",
+      "offer-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       1.00      1.00      1.00      6514\n",
+      "          1       0.00      0.00      0.00        31\n",
+      "\n",
+      "avg / total       0.99      1.00      0.99      6545\n",
+      "\n",
+      "\n",
+      "aid_related-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.76      0.84      0.80      3824\n",
+      "          1       0.74      0.62      0.68      2721\n",
+      "\n",
+      "avg / total       0.75      0.75      0.75      6545\n",
+      "\n",
+      "\n",
+      "medical_help-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.93      1.00      0.96      6068\n",
+      "          1       0.64      0.11      0.18       477\n",
+      "\n",
+      "avg / total       0.91      0.93      0.91      6545\n",
+      "\n",
+      "\n",
+      "medical_products-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.96      1.00      0.98      6232\n",
+      "          1       0.69      0.09      0.15       313\n",
+      "\n",
+      "avg / total       0.94      0.95      0.94      6545\n",
+      "\n",
+      "\n",
+      "search_and_rescue-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.97      1.00      0.99      6359\n",
+      "          1       0.43      0.03      0.06       186\n",
+      "\n",
+      "avg / total       0.96      0.97      0.96      6545\n",
+      "\n",
+      "\n",
+      "security-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.98      1.00      0.99      6444\n",
+      "          1       0.00      0.00      0.00       101\n",
+      "\n",
+      "avg / total       0.97      0.98      0.98      6545\n",
+      "\n",
+      "\n",
+      "military-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.97      1.00      0.98      6336\n",
+      "          1       0.72      0.10      0.18       209\n",
+      "\n",
+      "avg / total       0.96      0.97      0.96      6545\n",
+      "\n",
+      "\n",
+      "child_alone-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       1.00      1.00      1.00      6545\n",
+      "\n",
+      "avg / total       1.00      1.00      1.00      6545\n",
+      "\n",
+      "\n",
+      "water-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.96      0.99      0.98      6125\n",
+      "          1       0.82      0.35      0.49       420\n",
+      "\n",
+      "avg / total       0.95      0.95      0.94      6545\n",
+      "\n",
+      "\n",
+      "food-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.95      0.99      0.97      5812\n",
+      "          1       0.83      0.55      0.66       733\n",
+      "\n",
+      "avg / total       0.93      0.94      0.93      6545\n",
+      "\n",
+      "\n",
+      "shelter-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.93      0.99      0.96      5941\n",
+      "          1       0.81      0.30      0.44       604\n",
+      "\n",
+      "avg / total       0.92      0.93      0.91      6545\n",
+      "\n",
+      "\n",
+      "clothing-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      0.99      6447\n",
+      "          1       0.57      0.04      0.08        98\n",
+      "\n",
+      "avg / total       0.98      0.99      0.98      6545\n",
+      "\n",
+      "\n",
+      "money-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.98      1.00      0.99      6397\n",
+      "          1       0.50      0.03      0.05       148\n",
+      "\n",
+      "avg / total       0.97      0.98      0.97      6545\n",
+      "\n",
+      "\n",
+      "missing_people-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      0.99      6460\n",
+      "          1       0.00      0.00      0.00        85\n",
+      "\n",
+      "avg / total       0.97      0.99      0.98      6545\n",
+      "\n",
+      "\n",
+      "refugees-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.97      1.00      0.98      6334\n",
+      "          1       0.50      0.02      0.04       211\n",
+      "\n",
+      "avg / total       0.95      0.97      0.95      6545\n",
+      "\n",
+      "\n",
+      "death-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.97      1.00      0.98      6275\n",
+      "          1       0.77      0.19      0.30       270\n",
+      "\n",
+      "avg / total       0.96      0.96      0.95      6545\n",
+      "\n",
+      "\n",
+      "other_aid-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.87      0.99      0.93      5687\n",
+      "          1       0.54      0.05      0.09       858\n",
+      "\n",
+      "avg / total       0.83      0.87      0.82      6545\n",
+      "\n",
+      "\n",
+      "infrastructure_related-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.94      1.00      0.97      6129\n",
+      "          1       0.35      0.01      0.03       416\n",
+      "\n",
+      "avg / total       0.90      0.94      0.91      6545\n",
+      "\n",
+      "\n",
+      "transport-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.96      1.00      0.98      6243\n",
+      "          1       0.69      0.07      0.13       302\n",
+      "\n",
+      "avg / total       0.94      0.96      0.94      6545\n",
+      "\n",
+      "\n",
+      "buildings-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.96      1.00      0.98      6236\n",
+      "          1       0.72      0.13      0.21       309\n",
+      "\n",
+      "avg / total       0.95      0.96      0.94      6545\n",
+      "\n",
+      "\n",
+      "electricity-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.98      1.00      0.99      6416\n",
+      "          1       0.86      0.05      0.09       129\n",
+      "\n",
+      "avg / total       0.98      0.98      0.97      6545\n",
+      "\n",
+      "\n",
+      "tools-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      1.00      6505\n",
+      "          1       0.00      0.00      0.00        40\n",
+      "\n",
+      "avg / total       0.99      0.99      0.99      6545\n",
+      "\n",
+      "\n",
+      "hospitals-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      0.99      6475\n",
+      "          1       0.00      0.00      0.00        70\n",
+      "\n",
+      "avg / total       0.98      0.99      0.98      6545\n",
+      "\n",
+      "\n",
+      "shops-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      1.00      6512\n",
+      "          1       0.00      0.00      0.00        33\n",
+      "\n",
+      "avg / total       0.99      0.99      0.99      6545\n",
+      "\n",
+      "\n",
+      "aid_centers-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      0.99      6465\n",
+      "          1       0.00      0.00      0.00        80\n",
+      "\n",
+      "avg / total       0.98      0.99      0.98      6545\n",
+      "\n",
+      "\n",
+      "other_infrastructure-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.96      1.00      0.98      6261\n",
+      "          1       0.33      0.00      0.01       284\n",
+      "\n",
+      "avg / total       0.93      0.96      0.94      6545\n",
+      "\n",
+      "\n",
+      "weather_related-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.86      0.96      0.91      4701\n",
+      "          1       0.85      0.60      0.70      1844\n",
+      "\n",
+      "avg / total       0.86      0.86      0.85      6545\n",
+      "\n",
+      "\n",
+      "floods-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.95      1.00      0.97      6029\n",
+      "          1       0.87      0.33      0.47       516\n",
+      "\n",
+      "avg / total       0.94      0.94      0.93      6545\n",
+      "\n",
+      "\n",
+      "storm-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.94      0.98      0.96      5939\n",
+      "          1       0.71      0.44      0.54       606\n",
+      "\n",
+      "avg / total       0.92      0.93      0.92      6545\n",
+      "\n",
+      "\n",
+      "fire-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      0.99      6459\n",
+      "          1       1.00      0.01      0.02        86\n",
+      "\n",
+      "avg / total       0.99      0.99      0.98      6545\n",
+      "\n",
+      "\n",
+      "earthquake-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.97      0.99      0.98      5914\n",
+      "          1       0.89      0.73      0.80       631\n",
+      "\n",
+      "avg / total       0.96      0.97      0.96      6545\n",
+      "\n",
+      "\n",
+      "cold-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.98      1.00      0.99      6404\n",
+      "          1       0.67      0.04      0.08       141\n",
+      "\n",
+      "avg / total       0.97      0.98      0.97      6545\n",
+      "\n",
+      "\n",
+      "other_weather-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.95      1.00      0.97      6191\n",
+      "          1       0.17      0.01      0.02       354\n",
+      "\n",
+      "avg / total       0.90      0.94      0.92      6545\n",
+      "\n",
+      "\n",
+      "direct_report-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.85      0.98      0.91      5256\n",
+      "          1       0.77      0.32      0.45      1289\n",
+      "\n",
+      "avg / total       0.84      0.85      0.82      6545\n",
+      "\n",
+      "\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/opt/conda/lib/python3.6/site-packages/sklearn/metrics/classification.py:1135: UndefinedMetricWarning: Precision and F-score are ill-defined and being set to 0.0 in labels with no predicted samples.\n",
+      "  'precision', 'predicted', average, warn_for)\n"
+     ]
+    }
+   ],
+   "source": [
+    "#display classification report for each class label 0-35\n",
+    "#obs: pay attension on COLUMN, child_alone-0, since all elements belongs to the same class value (Class Imbalance)\n",
+    "\n",
+    "for i in range(y_test.shape[1]):\n",
+    "    print(categories_labels[i])\n",
+    "    print(classification_report(y_test[:,i], y_pred[:,i]))\n",
+    "    print()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#TODO: make some plot on class balance"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 6. Improve your model\n",
+    "Use grid search to find better parameters. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#TODO:\n",
+    "parameters = {\n",
+    "    'clf__estimator__n_estimators': [50, 100]\n",
+    "}\n",
+    "\n",
+    "cv = GridSearchCV(pipeline, param_grid=parameters)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 7. Test your model\n",
+    "Show the accuracy, precision, and recall of the tuned model.  \n",
+    "\n",
+    "Since this project focuses on code quality, process, and  pipelines, there is no minimum performance metric needed to pass. However, make sure to fine tune your models for accuracy, precision and recall to make your project stand out - especially for your portfolio!"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "#test with GridSearchCV\n",
+    "cv.fit(X_train, y_train)\n",
+    "y_pred = cv.predict(X_test)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "related-1\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.74      0.40      0.52      1526\n",
+      "          1       0.84      0.96      0.89      5019\n",
+      "\n",
+      "avg / total       0.82      0.83      0.81      6545\n",
+      "\n",
+      "\n",
+      "request-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.90      0.98      0.94      5401\n",
+      "          1       0.85      0.49      0.62      1144\n",
+      "\n",
+      "avg / total       0.89      0.90      0.88      6545\n",
+      "\n",
+      "\n",
+      "offer-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       1.00      1.00      1.00      6514\n",
+      "          1       0.00      0.00      0.00        31\n",
+      "\n",
+      "avg / total       0.99      1.00      0.99      6545\n",
+      "\n",
+      "\n",
+      "aid_related-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.79      0.84      0.81      3824\n",
+      "          1       0.75      0.69      0.72      2721\n",
+      "\n",
+      "avg / total       0.78      0.78      0.78      6545\n",
+      "\n",
+      "\n",
+      "medical_help-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.93      1.00      0.96      6068\n",
+      "          1       0.68      0.09      0.15       477\n",
+      "\n",
+      "avg / total       0.91      0.93      0.90      6545\n",
+      "\n",
+      "\n",
+      "medical_products-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.95      1.00      0.98      6232\n",
+      "          1       0.73      0.06      0.11       313\n",
+      "\n",
+      "avg / total       0.94      0.95      0.94      6545\n",
+      "\n",
+      "\n",
+      "search_and_rescue-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.97      1.00      0.99      6359\n",
+      "          1       0.56      0.05      0.10       186\n",
+      "\n",
+      "avg / total       0.96      0.97      0.96      6545\n",
+      "\n",
+      "\n",
+      "security-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.98      1.00      0.99      6444\n",
+      "          1       0.00      0.00      0.00       101\n",
+      "\n",
+      "avg / total       0.97      0.98      0.98      6545\n",
+      "\n",
+      "\n",
+      "military-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.97      1.00      0.98      6336\n",
+      "          1       0.62      0.04      0.07       209\n",
+      "\n",
+      "avg / total       0.96      0.97      0.95      6545\n",
+      "\n",
+      "\n",
+      "child_alone-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       1.00      1.00      1.00      6545\n",
+      "\n",
+      "avg / total       1.00      1.00      1.00      6545\n",
+      "\n",
+      "\n",
+      "water-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.96      1.00      0.98      6125\n",
+      "          1       0.87      0.38      0.53       420\n",
+      "\n",
+      "avg / total       0.95      0.96      0.95      6545\n",
+      "\n",
+      "\n",
+      "food-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.95      0.98      0.97      5812\n",
+      "          1       0.84      0.61      0.71       733\n",
+      "\n",
+      "avg / total       0.94      0.94      0.94      6545\n",
+      "\n",
+      "\n",
+      "shelter-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.94      0.99      0.96      5941\n",
+      "          1       0.87      0.33      0.48       604\n",
+      "\n",
+      "avg / total       0.93      0.93      0.92      6545\n",
+      "\n",
+      "\n",
+      "clothing-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      0.99      6447\n",
+      "          1       0.69      0.09      0.16        98\n",
+      "\n",
+      "avg / total       0.98      0.99      0.98      6545\n",
+      "\n",
+      "\n",
+      "money-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.98      1.00      0.99      6397\n",
+      "          1       0.50      0.03      0.05       148\n",
+      "\n",
+      "avg / total       0.97      0.98      0.97      6545\n",
+      "\n",
+      "\n",
+      "missing_people-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      0.99      6460\n",
+      "          1       0.00      0.00      0.00        85\n",
+      "\n",
+      "avg / total       0.97      0.99      0.98      6545\n",
+      "\n",
+      "\n",
+      "refugees-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.97      1.00      0.98      6334\n",
+      "          1       0.55      0.03      0.05       211\n",
+      "\n",
+      "avg / total       0.95      0.97      0.95      6545\n",
+      "\n",
+      "\n",
+      "death-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.96      1.00      0.98      6275\n",
+      "          1       0.85      0.14      0.25       270\n",
+      "\n",
+      "avg / total       0.96      0.96      0.95      6545\n",
+      "\n",
+      "\n",
+      "other_aid-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.87      1.00      0.93      5687\n",
+      "          1       0.55      0.03      0.06       858\n",
+      "\n",
+      "avg / total       0.83      0.87      0.82      6545\n",
+      "\n",
+      "\n",
+      "infrastructure_related-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.94      1.00      0.97      6129\n",
+      "          1       0.33      0.00      0.00       416\n",
+      "\n",
+      "avg / total       0.90      0.94      0.91      6545\n",
+      "\n",
+      "\n",
+      "transport-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.96      1.00      0.98      6243\n",
+      "          1       0.72      0.07      0.13       302\n",
+      "\n",
+      "avg / total       0.95      0.96      0.94      6545\n",
+      "\n",
+      "\n",
+      "buildings-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.96      1.00      0.98      6236\n",
+      "          1       0.78      0.13      0.22       309\n",
+      "\n",
+      "avg / total       0.95      0.96      0.94      6545\n",
+      "\n",
+      "\n",
+      "electricity-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.98      1.00      0.99      6416\n",
+      "          1       0.71      0.04      0.07       129\n",
+      "\n",
+      "avg / total       0.98      0.98      0.97      6545\n",
+      "\n",
+      "\n",
+      "tools-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      1.00      6505\n",
+      "          1       0.00      0.00      0.00        40\n",
+      "\n",
+      "avg / total       0.99      0.99      0.99      6545\n",
+      "\n",
+      "\n",
+      "hospitals-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      0.99      6475\n",
+      "          1       0.00      0.00      0.00        70\n",
+      "\n",
+      "avg / total       0.98      0.99      0.98      6545\n",
+      "\n",
+      "\n",
+      "shops-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      1.00      6512\n",
+      "          1       0.00      0.00      0.00        33\n",
+      "\n",
+      "avg / total       0.99      0.99      0.99      6545\n",
+      "\n",
+      "\n",
+      "aid_centers-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      0.99      6465\n",
+      "          1       0.00      0.00      0.00        80\n",
+      "\n",
+      "avg / total       0.98      0.99      0.98      6545\n",
+      "\n",
+      "\n",
+      "other_infrastructure-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.96      1.00      0.98      6261\n",
+      "          1       0.50      0.00      0.01       284\n",
+      "\n",
+      "avg / total       0.94      0.96      0.94      6545\n",
+      "\n",
+      "\n",
+      "weather_related-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.89      0.95      0.92      4701\n",
+      "          1       0.85      0.69      0.76      1844\n",
+      "\n",
+      "avg / total       0.88      0.88      0.88      6545\n",
+      "\n",
+      "\n",
+      "floods-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.95      1.00      0.97      6029\n",
+      "          1       0.91      0.41      0.56       516\n",
+      "\n",
+      "avg / total       0.95      0.95      0.94      6545\n",
+      "\n",
+      "\n",
+      "storm-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.95      0.98      0.97      5939\n",
+      "          1       0.75      0.49      0.60       606\n",
+      "\n",
+      "avg / total       0.93      0.94      0.93      6545\n",
+      "\n",
+      "\n",
+      "fire-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.99      1.00      0.99      6459\n",
+      "          1       0.00      0.00      0.00        86\n",
+      "\n",
+      "avg / total       0.97      0.99      0.98      6545\n",
+      "\n",
+      "\n",
+      "earthquake-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.98      0.99      0.99      5914\n",
+      "          1       0.91      0.81      0.86       631\n",
+      "\n",
+      "avg / total       0.97      0.97      0.97      6545\n",
+      "\n",
+      "\n",
+      "cold-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.98      1.00      0.99      6404\n",
+      "          1       0.78      0.13      0.22       141\n",
+      "\n",
+      "avg / total       0.98      0.98      0.97      6545\n",
+      "\n",
+      "\n",
+      "other_weather-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.95      1.00      0.97      6191\n",
+      "          1       0.52      0.05      0.08       354\n",
+      "\n",
+      "avg / total       0.92      0.95      0.92      6545\n",
+      "\n",
+      "\n",
+      "direct_report-0\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.86      0.98      0.92      5256\n",
+      "          1       0.81      0.36      0.49      1289\n",
+      "\n",
+      "avg / total       0.85      0.86      0.83      6545\n",
+      "\n",
+      "\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/opt/conda/lib/python3.6/site-packages/sklearn/metrics/classification.py:1135: UndefinedMetricWarning: Precision and F-score are ill-defined and being set to 0.0 in labels with no predicted samples.\n",
+      "  'precision', 'predicted', average, warn_for)\n"
+     ]
+    }
+   ],
+   "source": [
+    "#display classification report for each class label 0-35\n",
+    "#pay attension on COLUMN, child_alone-0, since all elements belongs to the same class value (Class Imbalance)\n",
+    "\n",
+    "for i in range(y_test.shape[1]):\n",
+    "    print(categories_labels[i])\n",
+    "    print(classification_report(y_test[:,i], y_pred[:,i]))\n",
+    "    print()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#observation:  "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 8. Try improving your model further. Here are a few ideas:\n",
+    "* try other machine learning algorithms\n",
+    "* add other features besides the TF-IDF"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#TODO: try RNN\n",
+    "\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 9. Export your model as a pickle file"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[[1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]\n",
+      " [1 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 0]\n",
+      " [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0]\n",
+      " [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]\n",
+      " [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]\n",
+      " [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]\n",
+      " [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 1 0 0 0]\n",
+      " [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]\n",
+      " [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]\n",
+      " [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "#export pickle\n",
+    "with open('pipeline.pickle', 'wb') as f:\n",
+    "    pickle.dump(pipeline, f)\n",
+    "\n",
+    "#double check\n",
+    "with open('pipeline.pickle', 'rb') as f:\n",
+    "    pipeline = pickle.load(f)\n",
+    "    print(pipeline.predict(X_test[0:10]))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 10. Use this notebook to complete `train.py`\n",
+    "Use the template file attached in the Resources folder to write a script that runs the steps above to create a database and export a model based on a new dataset specified by the user."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
