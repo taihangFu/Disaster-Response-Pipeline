@@ -25,6 +25,18 @@ from nltk.stem.porter import PorterStemmer
 nltk.download('stopwords')
 
 def load_data(database_filepath):
+    '''
+    Load data from database and save to pandas dataframe
+
+    Args:
+        database_filepath (str): filepath where the database(created by data/process_data.py) is located
+
+    Returns:
+        X(pandas.DataFrame)
+        Y(numpy.array)
+        category_names (pandas.DataFrame.columns): the prediction labels name for Y
+    '''
+    
     # load data from database
     engine = create_engine('sqlite:///'+database_filepath)
     df = pd.read_sql_table('DisasterResponse', engine) #table name same as db name
@@ -36,7 +48,18 @@ def load_data(database_filepath):
     
     return  X, Y, category_names 
 
+
 def tokenize(text):
+    '''
+    Tokenize the given text by normalization(to lower cases, puntuation removeal), tokenization, stopwords removal,  lemmatization
+
+    Args:
+        text (str): filepath where the database(created by data/process_data.py) is located
+
+    Returns:
+        words: preprocessed tokenized text
+    '''
+    
     #normalize
     ##lower case
     text = text.lower() 
@@ -50,13 +73,19 @@ def tokenize(text):
     cachestopwords = set(stopwords.words("english")) #to speed up
     words = [w for w in words if w not in cachestopwords]
     
-    #lemmatize
-    lemmed = list(set([WordNetLemmatizer().lemmatize(w) for w in words]))
+    #lemmatization
+    words = list(set([WordNetLemmatizer().lemmatize(w) for w in words]))
     
-    return lemmed
-
+    return words
 
 def build_model():
+     '''
+     create a MultiOutputClassifier model by using pipelines and GridSearchCV for later trained
+
+    Returns:
+        cv: a  built models by GridSearchCV, used for training in the next stage
+    '''
+        
     pipeline = Pipeline([
     ('vect', CountVectorizer(tokenizer=tokenize)),
     ('tfidf', TfidfTransformer()),
@@ -69,9 +98,20 @@ def build_model():
     
     cv = GridSearchCV(pipeline, param_grid=parameters)
     
+    
     return cv
- 
+
 def evaluate_model(model, X_test, Y_test, category_names): 
+    '''
+     make prediction on trained model then print out performance evaluation results
+     
+     Args:
+        model (sklearn.multioutput.MultiOutputClassifier):
+        X_test (pandas.DataFrame)
+        Y_test (numpy.array)  
+        category_names (pandas.DataFrame.columns): the prediction labels name for Y
+    '''
+    
     Y_pred = model.predict(X_test)
   
     for i in range(Y_test.shape[1]):
@@ -80,6 +120,14 @@ def evaluate_model(model, X_test, Y_test, category_names):
         print()
 
 def save_model(model, model_filepath):
+    '''
+    save model(pickle format) in given model_filepath
+    
+    Args:
+       model (sklearn.multioutput.MultiOutputClassifier)
+       model_filepath (str)
+    '''
+    
     #export pickle
     with open(model_filepath, 'wb') as f:
         pickle.dump(model, f)
